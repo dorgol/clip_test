@@ -77,5 +77,5 @@ def load_names():
 
 
 if __name__ == "__main__":
-    embed_all("test_images/val2017")
+    # embed_all("test_images/val2017")
     embed_all("test_images/images")

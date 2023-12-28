@@ -8,5 +8,4 @@ src/tmp.py
 .env
 .streamlit/
 coco_val2017.zip
-image_embeddings.h5
 .streamlit
