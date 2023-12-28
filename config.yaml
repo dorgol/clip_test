@@ -1,0 +1,3 @@
+NUM_NEIGHBORS: 1000
+CLIP_MODEL_STR: openai/clip-vit-base-patch32
+ENRICHMENT_MODEL_NAME: 'gpt-4'
