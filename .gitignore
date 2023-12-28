@@ -1,0 +1,12 @@
+venv
+test_images/tmp/
+test_images/val2017/
+test_images/images
+.idea
+.DS_Store
+src/tmp.py
+.env
+.streamlit/
+coco_val2017.zip
+image_embeddings.h5
+.streamlit
