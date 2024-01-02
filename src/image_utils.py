@@ -3,6 +3,9 @@ import numpy as np
 import h5py
 from PIL import Image
 import streamlit as st
+from PIL import Image
+import base64
+from io import BytesIO
 
 
 def load_all_images(dir_path):
@@ -45,17 +48,24 @@ def get_embedding_for_image(image_name, h5f_path='image_embeddings.h5'):
         return embeddings[idxs[0]]
 
 
-def display_thumbnail_in_column(column, image, thumbnail_size=(800, 200)):
-    """Resize an image to thumbnail size and display it in a specified Streamlit column."""
+def display_thumbnail_in_column(column, image, thumbnail_size=(800, 200), tooltip_data=None):
+    """Resize an image to thumbnail size and display it in a specified Streamlit column with a tooltip."""
     image.thumbnail(thumbnail_size)
-    column.image(image)
+    if tooltip_data.any():
+        # Convert probability distribution to a string
+        distribution_str = ", ".join([f"{prob:.2f}" for prob in tooltip_data])
+        with column.container():
+            st.image(image, use_column_width=True, caption=f"Dist: {distribution_str}")
+    else:
+        column.image(image)
 
 
-def display_images_in_grid(image_paths, images_per_row=3):
-    """Display images in a grid layout."""
-    for i in range(0, len(image_paths), images_per_row):
+
+def display_images_in_grid(path_prob_pairs, images_per_row=3):
+    """Display images in a grid layout with tooltip data."""
+    for i in range(0, len(path_prob_pairs), images_per_row):
         cols = st.columns(images_per_row)
-        for col, image_path in zip(cols, image_paths[i:i+images_per_row]):
-            if image_path:
-                image = Image.open(image_path)
-                display_thumbnail_in_column(col, image)
+        for col, (image_path, image_probs) in zip(cols, path_prob_pairs[i:i + images_per_row]):
+            image = Image.open(image_path)
+            display_thumbnail_in_column(col, image, tooltip_data=image_probs)
+

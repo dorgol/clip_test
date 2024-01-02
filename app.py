@@ -154,8 +154,9 @@ def display_top_k_images(probabilities_per_image, image_names):
     st.markdown("### Top K Images")
     k = st.number_input('Insert a number for Top K', min_value=1, value=5, step=1)
     if k:
-        images_paths = get_top_k_images(probabilities_per_image, image_names, k)
-        display_images_in_grid(images_paths)
+        # Example call
+        path_prob_pairs = get_top_k_images(probabilities_per_image, image_names, k)
+        display_images_in_grid(path_prob_pairs)
 
 
 def display_top_p_images(probabilities_per_image, image_names):
@@ -166,7 +167,8 @@ def display_top_p_images(probabilities_per_image, image_names):
         num_images = len(images_paths)
         st.write(f"There are {num_images} images with probability above {p}")
         slider_range = st.slider("Range to show images", 0, num_images, (0, num_images))
-        display_images_in_grid(images_paths[slider_range[0]:slider_range[1]])
+        pairs = images_paths[slider_range[0]:slider_range[1]]
+        display_images_in_grid(pairs)
 
 
 if __name__ == "__main__":
