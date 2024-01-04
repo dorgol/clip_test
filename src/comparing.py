@@ -1,4 +1,5 @@
 import numpy as np
+import streamlit
 import torch
 from PIL import Image
 
@@ -25,9 +26,16 @@ def get_top_k_images(probs, paths, k):
     return selected_paths_probs
 
 
-def get_top_p_images(probs, paths, p):
+def get_top_p_images(probs, paths, p, strict_filter=False):
     prob_path_pairs = zip(probs, paths)
-    filtered_pairs = [(path, prob) for prob, path in prob_path_pairs if prob[0] >= p]
+
+    if strict_filter:
+        # Include only pairs where the first element is the max in its row
+        filtered_pairs = [(path, prob) for prob, path in prob_path_pairs if prob[0] >= p and prob[0] == max(prob)]
+    else:
+        # Include all pairs where the first element is greater than or equal to p
+        filtered_pairs = [(path, prob) for prob, path in prob_path_pairs if prob[0] >= p]
+
     sorted_pairs = sorted(filtered_pairs, key=lambda x: x[1][0], reverse=True)
     return sorted_pairs
 

@@ -161,9 +161,10 @@ def display_top_k_images(probabilities_per_image, image_names):
 
 def display_top_p_images(probabilities_per_image, image_names):
     st.markdown("#### Top P")
+    on = st.toggle('max probability')
     p = st.number_input('Insert a probability for Top P', min_value=0.01, value=0.9, step=0.01)
     if p:
-        images_paths = get_top_p_images(probabilities_per_image, image_names, p)
+        images_paths = get_top_p_images(probabilities_per_image, image_names, p, on)
         num_images = len(images_paths)
         st.write(f"There are {num_images} images with probability above {p}")
         slider_range = st.slider("Range to show images", 0, num_images, (0, num_images))
