@@ -2,7 +2,7 @@ from typing import Tuple
 
 import torch
 import yaml
-from transformers import CLIPModel
+from transformers import CLIPModel, CLIPConfig
 from transformers import CLIPProcessor, AutoTokenizer
 
 # Instantiate model and processor
@@ -16,15 +16,23 @@ def get_model_and_processor(model_name: str) -> Tuple[CLIPModel, CLIPProcessor]:
     Loads and returns the CLIP text model with projection and its associated processor.
 
     Args:
-    model_name (str): The name of the pretrained model to be loaded.
+        model_name (str): The name of the pretrained model to be loaded.
 
     Returns:
-    Tuple[CLIPTextModelWithProjection, CLIPProcessor]: A tuple containing the loaded model and processor.
+        Tuple[CLIPTextModelWithProjection, CLIPProcessor]: A tuple containing the loaded model and processor.
     """
-    # Load the CLIP text model with projection using the specified model name
-    model = CLIPModel.from_pretrained(model_name)
+
+    # Load the configuration of the model
+    config = CLIPConfig.from_pretrained(model_name)
+
+    # Modify the max_position_embeddings (with potential risks as mentioned)
+    config.max_position_embeddings = 1024
+
+    # Load the CLIP text model with the modified configuration
+    model = CLIPModel.from_pretrained(model_name, config=config)
+
     # Load the processor for the model using the same model name
-    processor = AutoTokenizer.from_pretrained(model_name)
+    processor = CLIPProcessor.from_pretrained(model_name)
 
     return model, processor
 
@@ -42,7 +50,7 @@ def get_text_embeddings(processor: CLIPProcessor, model: CLIPModel, text) -> \
     Returns:
     torch.Tensor: A tensor representing the image embeddings.
     """
-    # Process the image using the processor to convert it into a format suitable for the model
+
     inputs = processor(text, padding=True, return_tensors="pt")
     # Pass the processed image to the model to obtain embeddings
     text_embeds = model.get_text_features(**inputs)

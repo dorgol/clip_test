@@ -2,34 +2,38 @@ import pandas as pd
 import streamlit as st
 import torch
 
-from src.comparing import calculate_logits, calculate_probabilities, get_top_k_images, get_top_p_images
+from src.comparing import calculate_logits, calculate_probabilities, get_top_k_images, get_top_p_images, \
+    get_results_df, extract_max_category, compare_clip_and_gpt, create_confusion_matrix, get_classification_metrics
 from src.encode_image import load_embeddings, load_names
 from src.enrich import run_enrichment
-from src.image_utils import display_images_in_grid
+from src.image_tagging.tag_images import create_tagged_dataset
+from src.image_utils import display_images_in_grid, display_images_in_grid_no_tooltip
 from src.text_model import get_text_embeddings, get_model_and_processor, MODEL_NAME
 
 
 def initialize_session_state():
     if 'negative_inputs' not in st.session_state:
         st.session_state.negative_inputs = []
+    if 'negative_tags' not in st.session_state:
+        st.session_state.negative_tags = ['' for _ in st.session_state.negative_inputs]
     if 'input' not in st.session_state:
         st.session_state.input = []
+    if 'input_tags' not in st.session_state:
+        st.session_state.input_tags = ''
 
 
 def add_negative():
     st.session_state.negative_inputs.append('')
+    st.session_state.negative_tags.append('')
 
 
 def remove_negative(index):
     del st.session_state.negative_inputs[index]
+    del st.session_state.negative_tags[index]
 
 
 def main():
     initialize_session_state()
-
-    # Fetch image embeddings
-    images_features = torch.tensor(load_embeddings())
-    image_names = load_names()
 
     # Main search term input and enrich button
     search_term_input()
@@ -51,13 +55,11 @@ def manage_negative_prompts():
 
 
 def search_term_input():
-    col1, col2 = st.columns([4, 1])
+    col1, col2, col3 = st.columns([3, 1, 1])
     with col1:
-        # Default value is the current state or a placeholder if empty
         default_value = st.session_state.input[0] if st.session_state.input else 'A photo of a kid'
         search_term = st.text_input('Enter your search', value=default_value)
 
-        # Update only if there's a change
         if st.session_state.input:
             if st.session_state.input[0] != search_term:
                 st.session_state.input[0] = search_term
@@ -65,6 +67,9 @@ def search_term_input():
             st.session_state.input.append(search_term)
 
     with col2:
+        st.text_input('Tag', value=st.session_state.input_tags, key='input_tags')
+
+    with col3:
         if st.button('Enrich Prompt'):
             if st.session_state.input:
                 enriched_term = run_enrichment(st.session_state.input[0])
@@ -99,14 +104,23 @@ def add_negative_prompt():
 
 
 def delete_negative_prompt(index):
-    col1, col2 = st.columns([4, 1])
+    col1, col2, col3 = st.columns([3, 1, 1])
     with col1:
         negative_prompt = st.text_input(
             f'Negative example {index + 1}',
             value=st.session_state.negative_inputs[index],
             key=f'negative_{index}')
         st.session_state.negative_inputs[index] = negative_prompt
+
     with col2:
+        # Check if the index is within the bounds of negative_tags
+        if index < len(st.session_state.negative_tags):
+            tag_value = st.session_state.negative_tags[index]
+        else:
+            tag_value = ''
+        st.session_state.negative_tags[index] = st.text_input(
+            'Tag', value=tag_value, key=f'tag_{index}')
+    with col3:
         if st.button('Delete', key=f'delete_{index}'):
             remove_negative(index)
         if st.button('Enrich', key=f'enrich_{index}'):
@@ -148,6 +162,32 @@ def display_search_results():
     probabilities_per_image, image_names = st.session_state.search_results
     display_top_k_images(probabilities_per_image, image_names)
     display_top_p_images(probabilities_per_image, image_names)
+    on = st.toggle('compare to chatgpt')
+    if on:
+        display_confusion_matrix(probabilities_per_image, image_names)
+
+
+def display_confusion_matrix(probabilities_per_image, image_names):
+    categories = [st.session_state.input_tags] + st.session_state.negative_tags + ["general"]
+    df = get_results_df(probabilities_per_image, image_names, categories)
+    df = extract_max_category(df)
+    gpt_df = get_ground_truth(probabilities_per_image, image_names)
+    joined = compare_clip_and_gpt(clip_df=df, gpt_df=gpt_df)
+    st.dataframe(joined)
+    accuracy, class_report, cohens_kappa, confusion = get_classification_metrics(joined)
+    # Display the results in Streamlit
+    st.write("### Accuracy")
+    st.write(accuracy)
+
+    st.write("### Confusion Matrix")
+    st.dataframe(confusion)
+
+    st.write("### Classification Report")
+    st.write(class_report)
+
+    st.write("### Cohen's Kappa")
+    st.write(cohens_kappa)
+
 
 
 def display_top_k_images(probabilities_per_image, image_names):
@@ -170,6 +210,17 @@ def display_top_p_images(probabilities_per_image, image_names):
         slider_range = st.slider("Range to show images", 0, num_images, (0, num_images))
         pairs = images_paths[slider_range[0]:slider_range[1]]
         display_images_in_grid(pairs)
+
+
+def get_ground_truth(probabilities_per_image, image_names):
+    st.markdown("### Sampled Images")
+    n = st.number_input('Insert a number for sampling', min_value=1, value=5, step=1)
+    if n:
+        categories = st.session_state.negative_tags + [st.session_state.input_tags]
+        df_truth = create_tagged_dataset(probabilities_per_image[:, 0], image_names, n, categories)
+
+        display_images_in_grid_no_tooltip(df_truth['Image Path'].values)
+        return df_truth
 
 
 if __name__ == "__main__":

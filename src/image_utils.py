@@ -1,11 +1,9 @@
 import os
-import numpy as np
+
 import h5py
-from PIL import Image
+import numpy as np
 import streamlit as st
 from PIL import Image
-import base64
-from io import BytesIO
 
 
 def load_all_images(dir_path):
@@ -33,7 +31,7 @@ def show_images(images):
         image.show()
 
 
-def get_embedding_for_image(image_name, h5f_path='image_embeddings.h5'):
+def get_embedding_for_image(image_name, h5f_path='image_embeddings_g.h5'):
     with h5py.File(h5f_path, 'r') as h5f:
         image_names = h5f['image_names'][:]
         embeddings = h5f['embeddings'][:]
@@ -60,7 +58,6 @@ def display_thumbnail_in_column(column, image, thumbnail_size=(800, 200), toolti
         column.image(image)
 
 
-
 def display_images_in_grid(path_prob_pairs, images_per_row=3):
     """Display images in a grid layout with tooltip data."""
     for i in range(0, len(path_prob_pairs), images_per_row):
@@ -68,4 +65,13 @@ def display_images_in_grid(path_prob_pairs, images_per_row=3):
         for col, (image_path, image_probs) in zip(cols, path_prob_pairs[i:i + images_per_row]):
             image = Image.open(image_path)
             display_thumbnail_in_column(col, image, tooltip_data=image_probs)
+
+
+def display_images_in_grid_no_tooltip(paths, images_per_row=3):
+    for i in range(0, len(paths), images_per_row):
+        cols = st.columns(images_per_row)
+        for col, image_path in zip(cols, paths[i:i + images_per_row]):
+            image = Image.open(image_path)
+            image.thumbnail((800,200))
+            col.image(image)
 

@@ -2,7 +2,7 @@ from typing import Tuple
 
 import torch
 from PIL import Image
-from transformers import AutoProcessor, CLIPVisionModelWithProjection, CLIPProcessor, CLIPModel
+from transformers import AutoProcessor, CLIPProcessor, CLIPModel
 
 
 def get_model_and_processor(model_name: str) -> Tuple[CLIPModel, CLIPProcessor]:

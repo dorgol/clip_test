@@ -73,6 +73,7 @@ def load_embeddings():
 def load_names():
     with h5py.File('image_embeddings.h5', 'r') as h5f:
         loaded_embeddings = h5f['image_names'][:]
+        loaded_embeddings = [name.decode('utf-8') for name in loaded_embeddings]
         return loaded_embeddings
 
 
