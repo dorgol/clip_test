@@ -1,0 +1,42 @@
+{
+    "age": [
+        "baby",
+        "child",
+        "teenager",
+        "young adult",
+        "middle aged adult",
+        "senior adult"
+    ],
+    "gender": [
+        "male",
+        "female"
+    ],
+    "hair color": [
+        "brown",
+        "black",
+        "blonde",
+        "ginger",
+        "white",
+        "grey",
+        "other"
+    ],
+    "background": [
+        "solid",
+        "not solid"
+    ],
+    "wearing makeup": [
+        "yes",
+        "no"
+    ],
+    "skin tone": [
+        "Very Light",
+        "Light to Medium",
+        "Medium to Olive",
+        "Tan to Brown",
+        "Dark Brown to Deep"
+    ],
+    "wearing lipstick": [
+        "yes",
+        "no"
+    ]
+}
