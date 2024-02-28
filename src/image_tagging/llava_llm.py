@@ -31,8 +31,6 @@ class LlavaClient(BaseLLMClient):
             stream=False,
         )
         response = stream['response']
-        response = self.extract_and_parse_json(response)
-        # print(response)
 
         return response
 

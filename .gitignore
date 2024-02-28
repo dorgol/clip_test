@@ -10,3 +10,4 @@ src/tmp.py
 coco_val2017.zip
 .streamlit
 image_embeddings.h5
+responses.csv

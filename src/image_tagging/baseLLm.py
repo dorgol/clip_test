@@ -25,22 +25,31 @@ class BaseLLMClient:
     def get_responses(self, max_retries=3):
         """
         Attempts to get a valid response, retrying up to max_retries times.
+        Keeps the current answer if retries don't yield a valid response.
 
         :param max_retries: int, maximum number of retries if the response is not valid.
-        :return: the valid response if succeeded, or None if all retries failed.
+        :return: the best obtained response, which could be an invalid response if no valid response is obtained after retries.
         """
+        response = None  # Initialize response to None
         for attempt in range(1, max_retries + 1):
             try:
-                response = self.generate_response()  # Attempt to generate the response.
-                if self.is_valid_response(response):
-                    return response  # Return the response if it's valid.
+                temp_response = self.generate_response()  # Attempt to generate the response.
+                temp_response = self.extract_and_parse_json(temp_response)
+                # Only update the main response if the new response is valid
+                if self.is_valid_response(temp_response):
+                    response = temp_response
+                    return response  # Return immediately if a valid response is obtained
             except Exception as e:
                 print(f'Attempt {attempt}: An error occurred - {e}')
+                # Optionally, update response with an error message or partial response
+                # response = temp_response or some error indication if needed
 
-            print(f'Retry {attempt}/{max_retries} failed. Retrying...')
+            # If reaching this point, the attempt failed
+            print(f'Retry {attempt}/{max_retries} failed.')
 
-        print("Maximum retries reached. No valid response obtained.")
-        return None
+        if response is None or not self.is_valid_response(response):
+            print("Maximum retries reached. No valid response obtained or keeping the last known response.")
+        return response
 
     def generate_response(self):
         raise NotImplementedError("This method should be implemented by subclasses.")
@@ -48,22 +57,26 @@ class BaseLLMClient:
     @staticmethod
     def extract_and_parse_json(s):
         """
-        Attempts to extract a JSON object from a string and parse it.
+        Attempts to extract a JSON object from a string and parse it,
+        adapting for single quotes.
 
         :param s: str, the string containing the JSON object.
         :return: The parsed JSON object if successful, or None if parsing fails.
         """
         try:
+            # Attempt to normalize single quotes to double quotes
+            normalized_str = s.replace("'", '"')
+
             # Find the indices of the first opening brace and the last closing brace
-            start_index = s.find('{')
-            end_index = s.rfind('}') + 1  # Add 1 to include the closing brace in the substring
+            start_index = normalized_str.find('{')
+            end_index = normalized_str.rfind('}') + 1  # Add 1 to include the closing brace
 
             if start_index == -1 or end_index == -1:
                 print("No JSON object found in the string.")
                 return None
 
             # Extract the substring that potentially contains the JSON object
-            json_str = s[start_index:end_index]
+            json_str = normalized_str[start_index:end_index]
 
             # Attempt to parse the substring as JSON
             return json.loads(json_str)
@@ -94,8 +107,9 @@ class BaseLLMClient:
                 if category not in self.categories:
                     print(f"Invalid category '{category}' for {person}.")
                     return False
+                valid_options = set(self.categories[category]) | {'Unknown'}
                 # Validate the value is a valid option for the category
-                if not value in (list(set(self.categories[category]))):
+                if value not in (list(valid_options)):
                     print(f"Invalid option '{value}' for category '{category}' in {person}.")
                     return False
         return True

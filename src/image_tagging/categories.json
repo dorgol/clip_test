@@ -38,5 +38,19 @@
     "wearing lipstick": [
         "yes",
         "no"
+    ],
+    "is a person": [
+        "yes",
+        "no"
+    ],
+    "setting": [
+        "indoor",
+        "outdoor"
+    ],
+    "hair length": [
+        "long",
+        "medium",
+        "short",
+        "bald"
     ]
 }
