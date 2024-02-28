@@ -1,3 +1,4 @@
+from typing import List
 import streamlit as st
 import requests
 from src.image_tagging.baseLLm import BaseLLMClient
@@ -7,11 +8,24 @@ api_key = st.secrets["OPENAI_API_KEY"]
 
 
 class OpenAIClient(BaseLLMClient):
-    def __init__(self, image_paths, api_key, context, categories):
+    def __init__(self, image_paths: List[str], api_key: str, context: str, categories: dict) -> None:
+        """
+        Initializes the OpenAIClient with image paths, an API key, context, and categories.
+
+        :param image_paths: List[str], paths to the images to be processed.
+        :param api_key: str, the API key for authenticating requests to OpenAI.
+        :param context: str, contextual information to guide the generation.
+        :param categories: dict, categories with options for validating the response.
+        """
         super().__init__(image_paths, context, categories)
         self.api_key = api_key
 
-    def create_image_dicts(self):
+    def create_image_dicts(self) -> List[dict]:
+        """
+        Converts base64 encoded images to dictionaries expected by the OpenAI API, marking each as a low-detail image URL.
+
+        :return: List[dict], a list of dictionaries each representing an image for the API request.
+        """
         image_dicts = []
         for base64_image in self.base64_images:
             image_dict = {
@@ -24,7 +38,12 @@ class OpenAIClient(BaseLLMClient):
             image_dicts.append(image_dict)
         return image_dicts
 
-    def generate_response(self):
+    def generate_response(self) -> str:
+        """
+        Generates a response from OpenAI's API using the provided images and context.
+
+        :return: str, the generated response from OpenAI.
+        """
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.api_key}"
@@ -33,7 +52,6 @@ class OpenAIClient(BaseLLMClient):
         text_message = {
             "type": "text",
             "text": self.context
-
         }
 
         image_messages = self.create_image_dicts()

@@ -1,11 +1,11 @@
 {
     "age": [
-        "baby",
-        "child",
-        "teenager",
-        "young adult",
-        "middle aged adult",
-        "senior adult"
+        "baby (0-2)",
+        "child (2-10)",
+        "teenager (10-19)",
+        "young adult (20-35)",
+        "middle aged adult (36-55)",
+        "senior adult (56-120)"
     ],
     "gender": [
         "male",
@@ -52,5 +52,19 @@
         "medium",
         "short",
         "bald"
+    ],
+    "hair style": [
+        "pixie cut",
+        "buzz cut",
+        "bob cut",
+        "shag cut",
+        "layered cut",
+        "curtain bangs",
+        "straight cut",
+        "feathered cut",
+        "afro",
+        "fade",
+        "bald",
+        "other"
     ]
 }
