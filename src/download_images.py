@@ -3,7 +3,13 @@ from tqdm import tqdm
 import zipfile
 
 
-def download_file(url, filename):
+def download_file(url: str, filename: str) -> None:
+    """
+    Downloads a file from a given URL and saves it to a local path, displaying the download progress.
+
+    :param url: str, the URL to download the file from.
+    :param filename: str, the local path where the file will be saved.
+    """
     response = requests.get(url, stream=True)
     total_size_in_bytes = int(response.headers.get('content-length', 0))
     block_size = 1024  # 1 Kibibyte

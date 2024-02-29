@@ -1,7 +1,8 @@
 import os
-
+from typing import List, Tuple
 import h5py
 import numpy as np
+import torch
 import yaml
 from PIL import Image
 from tqdm import tqdm
@@ -13,12 +14,27 @@ MODEL_NAME = config['CLIP_MODEL_STR']
 model, processor = get_model_and_processor(MODEL_NAME)
 
 
-def get_image_embedding(image, model=model, processor=processor):
+def get_image_embedding(image: Image.Image, model, processor) -> torch.Tensor:
+    """
+    Generates an embedding for a given image using the specified model and processor.
+
+    :param image: Image.Image, the image to generate the embedding for.
+    :param model: The model used to generate embeddings.
+    :param processor: The processor used to prepare the image for the model.
+    :return: np.ndarray, the generated embedding for the image.
+    """
     embeddings = get_image_embeddings(processor, model, image)
     return embeddings
 
 
-def process_and_save_batch(batch_embeddings, batch_files, h5f):
+def process_and_save_batch(batch_embeddings: torch.Tensor, batch_files: List[str], h5f: h5py.File) -> None:
+    """
+    Processes a batch of embeddings and file names to save them into an HDF5 file.
+
+    :param batch_embeddings: np.ndarray, the embeddings of the batch images.
+    :param batch_files: List[str], the file names of the batch images.
+    :param h5f: h5py.File, the HDF5 file handle where data is saved.
+    """
     embeddings_array = np.array(batch_embeddings.detach())
 
     current_size = h5f['embeddings'].shape[0]
@@ -30,7 +46,14 @@ def process_and_save_batch(batch_embeddings, batch_files, h5f):
     h5f['image_names'][current_size:new_size] = np.array(batch_files, dtype=h5py.special_dtype(vlen=str))
 
 
-def embed_all(image_folder='test_images/val2017', batch_size=32):
+def embed_all(image_folder: str = 'test_images/val2017', batch_size: int = 32) -> None:
+    """
+    Processes all images in the specified folder to generate embeddings and saves them along with their names in an HDF5
+    file.
+
+    :param image_folder: str, the folder containing images to process.
+    :param batch_size: int, the number of images to process in each batch.
+    """
     all_image_files = os.listdir(image_folder)
     h5_file_path = 'image_embeddings.h5'
 
@@ -64,13 +87,23 @@ def embed_all(image_folder='test_images/val2017', batch_size=32):
             names_dataset[current_size:new_size] = [image_folder + "/" + i for i in batch_files]
 
 
-def load_embeddings():
+def load_embeddings() -> np.ndarray:
+    """
+    Loads and returns all image embeddings from the HDF5 file.
+
+    :return: np.ndarray, all image embeddings stored in the HDF5 file.
+    """
     with h5py.File('image_embeddings.h5', 'r') as h5f:
         loaded_embeddings = h5f['embeddings'][:]
         return loaded_embeddings
 
 
-def load_names():
+def load_names() -> List[str]:
+    """
+    Loads and returns all image names from the HDF5 file.
+
+    :return: List[str], all image names stored in the HDF5 file, decoded to UTF-8.
+    """
     with h5py.File('image_embeddings.h5', 'r') as h5f:
         loaded_embeddings = h5f['image_names'][:]
         loaded_embeddings = [name.decode('utf-8') for name in loaded_embeddings]
