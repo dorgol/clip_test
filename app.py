@@ -1,9 +1,11 @@
+import os
+
 import pandas as pd
 import streamlit as st
 import torch
 
 from src.comparing import calculate_logits, calculate_probabilities, get_top_k_images, get_top_p_images, \
-    get_results_df, extract_max_category, compare_clip_and_gpt, create_confusion_matrix, get_classification_metrics
+    get_results_df, extract_max_category, compare_clip_and_gpt, get_classification_metrics
 from src.encode_image import load_embeddings, load_names
 from src.enrich import run_enrichment
 from src.image_tagging.tag_images import create_tagged_dataset
@@ -32,6 +34,12 @@ def remove_negative(index):
     del st.session_state.negative_tags[index]
 
 
+def get_available_datasets():
+    directory = 'datasets/'
+    h5_files = os.listdir(directory)
+    return h5_files
+
+
 def main():
     initialize_session_state()
 
@@ -40,9 +48,11 @@ def main():
 
     # Function to add a new negative prompt and manage existing ones
     manage_negative_prompts()
-
+    datasets = get_available_datasets()
+    chosen_dataset = st.selectbox('choose a dataset', datasets)
+    chosen_dataset = 'datasets/' + chosen_dataset
     # Combine search terms and search
-    search_and_display_results()
+    search_and_display_results(chosen_dataset)
 
 
 def manage_negative_prompts():
@@ -136,12 +146,12 @@ def negative_prompt_buttons(index):
         st.session_state.negative_inputs[index] = enriched_term['text']
 
 
-def search_and_display_results():
+def search_and_display_results(dataset):
     search_terms = [st.session_state.input[0]] + st.session_state.negative_inputs + ["some general random stuff"]
     df = pd.DataFrame(search_terms, columns=["Strings"])
     st.table(df)
-    images_features = torch.tensor(load_embeddings())
-    image_names = load_names()
+    images_features = torch.tensor(load_embeddings(dataset))
+    image_names = load_names(dataset)
 
     if st.button('Search'):
         execute_search(search_terms, images_features, image_names)
@@ -189,7 +199,6 @@ def display_confusion_matrix(probabilities_per_image, image_names):
     st.write(cohens_kappa)
 
 
-
 def display_top_k_images(probabilities_per_image, image_names):
     st.markdown("### Top K Images")
     k = st.number_input('Insert a number for Top K', min_value=1, value=5, step=1)
@@ -214,7 +223,7 @@ def display_top_p_images(probabilities_per_image, image_names):
 
 def get_ground_truth(probabilities_per_image, image_names):
     st.markdown("### Sampled Images")
-    n = st.number_input('Insert a number for sampling', min_value=1, value=5, step=1)
+    n = st.number_input('Insert a number for sampling', min_value=1, value=10, step=1)
     if n:
         categories = st.session_state.negative_tags + [st.session_state.input_tags]
         df_truth = create_tagged_dataset(probabilities_per_image[:, 0], image_names, n, categories)

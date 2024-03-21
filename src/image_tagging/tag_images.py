@@ -132,7 +132,7 @@ def create_tagged_dataset(probs, paths, n, categories):
     :return: A concatenated DataFrame of tagged data for all percentiles.
     """
     # Define percentiles
-    percentiles = [90, 75, 50, 25]
+    percentiles = [90, 75]
     data_frames = []
 
     for percentile in percentiles:

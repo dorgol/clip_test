@@ -9,5 +9,8 @@ src/tmp.py
 .streamlit/
 coco_val2017.zip
 .streamlit
-image_embeddings.h5
+datasets/image_embeddings.h5
 responses.csv
+test_images
+img_align_celeba.zip
+img_celeba.7z.003

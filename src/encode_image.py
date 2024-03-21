@@ -1,4 +1,5 @@
 import os
+import random
 from typing import List, Tuple
 import h5py
 import numpy as np
@@ -46,65 +47,49 @@ def process_and_save_batch(batch_embeddings: torch.Tensor, batch_files: List[str
     h5f['image_names'][current_size:new_size] = np.array(batch_files, dtype=h5py.special_dtype(vlen=str))
 
 
-def embed_all(image_folder: str = 'test_images/val2017', batch_size: int = 32) -> None:
-    """
-    Processes all images in the specified folder to generate embeddings and saves them along with their names in an HDF5
-    file.
-
-    :param image_folder: str, the folder containing images to process.
-    :param batch_size: int, the number of images to process in each batch.
-    """
-    all_image_files = os.listdir(image_folder)
-    h5_file_path = 'image_embeddings.h5'
-
-    # Check if the HDF5 file exists
+def embed_all(image_folder: str = 'test_images/val2017', batch_size: int = 32,
+              h5_file_path='image_embeddings.h5', max_images=None) -> None:
+    all_image_files = [os.path.join(image_folder, f) for f in os.listdir(image_folder)]
+    if max_images is not None:
+        all_image_files = random.sample(all_image_files, max_images)
     file_exists = os.path.isfile(h5_file_path)
 
-    with h5py.File(h5_file_path, 'a') as h5f:  # Open file in append mode
+    with h5py.File(h5_file_path, 'a') as h5f:
         if not file_exists:
-            # Create datasets if file does not exist
             h5f.create_dataset('embeddings', shape=(0, 512), maxshape=(None, 512), dtype=np.float32)
             h5f.create_dataset('image_names', shape=(0,), maxshape=(None,), dtype=h5py.special_dtype(vlen=str))
 
-        embeddings_dataset = h5f['embeddings']
-        names_dataset = h5f['image_names']
-
         for i in tqdm(range(0, len(all_image_files), batch_size)):
             batch_files = all_image_files[i:i + batch_size]
-            batch_images = [Image.open(os.path.join(image_folder, img_file)) for img_file in batch_files]
-            batch_embeddings = get_image_embedding(batch_images)
+            batch_embeddings = []
 
-            # Get current dataset size
-            current_size = embeddings_dataset.shape[0]
-            new_size = current_size + len(batch_embeddings)
+            for image_path in batch_files:
+                with Image.open(image_path) as img:
+                    embedding = get_image_embedding(img, model, processor)
+                    batch_embeddings.append(embedding)
 
-            # Resize datasets
-            embeddings_dataset.resize(new_size, axis=0)
-            names_dataset.resize(new_size, axis=0)
-
-            # Append new data
-            embeddings_dataset[current_size:new_size] = batch_embeddings
-            names_dataset[current_size:new_size] = [image_folder + "/" + i for i in batch_files]
+            batch_embeddings_tensor = torch.stack(batch_embeddings).squeeze(1)
+            process_and_save_batch(batch_embeddings_tensor, batch_files, h5f)
 
 
-def load_embeddings() -> np.ndarray:
+def load_embeddings(h5name) -> np.ndarray:
     """
     Loads and returns all image embeddings from the HDF5 file.
 
     :return: np.ndarray, all image embeddings stored in the HDF5 file.
     """
-    with h5py.File('image_embeddings.h5', 'r') as h5f:
+    with h5py.File(h5name, 'r') as h5f:
         loaded_embeddings = h5f['embeddings'][:]
         return loaded_embeddings
 
 
-def load_names() -> List[str]:
+def load_names(h5name) -> List[str]:
     """
     Loads and returns all image names from the HDF5 file.
 
     :return: List[str], all image names stored in the HDF5 file, decoded to UTF-8.
     """
-    with h5py.File('image_embeddings.h5', 'r') as h5f:
+    with h5py.File(h5name, 'r') as h5f:
         loaded_embeddings = h5f['image_names'][:]
         loaded_embeddings = [name.decode('utf-8') for name in loaded_embeddings]
         return loaded_embeddings
@@ -112,4 +97,4 @@ def load_names() -> List[str]:
 
 if __name__ == "__main__":
     # embed_all("test_images/val2017")
-    embed_all("test_images/images")
+    embed_all("test_images/fashion", h5_file_path="fashion.h5", max_images=10_000)
