@@ -97,4 +97,4 @@ def load_names(h5name) -> List[str]:
 
 if __name__ == "__main__":
     # embed_all("test_images/val2017")
-    embed_all("test_images/fashion", h5_file_path="fashion.h5", max_images=10_000)
+    embed_all("test_images/img_celeba", h5_file_path="datasets/celebs_full.h5", max_images=10_000)

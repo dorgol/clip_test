@@ -1,4 +1,5 @@
 import random
+from typing import List
 
 import numpy as np
 import pandas as pd
@@ -209,7 +210,7 @@ def calculate_accuracy(df):
     return accuracy_score(df['Result'], df['Category'])
 
 
-def get_classification_report(df: pd.DataFrame) -> str:
+def get_classification_report(df: pd.DataFrame) -> pd.DataFrame:
     """
     Generates a classification report for the model predictions, including precision, recall, and F1-score for each class.
 
@@ -219,7 +220,8 @@ def get_classification_report(df: pd.DataFrame) -> str:
     Returns:
     - str: A string representation of the classification report.
     """
-    return classification_report(df['Result'], df['Category'])
+    df = classification_report(df['Result'], df['Category'], output_dict=True)
+    return pd.DataFrame(df).transpose()
 
 
 def calculate_cohens_kappa(df: pd.DataFrame) -> float:
@@ -250,3 +252,36 @@ def get_classification_metrics(df: pd.DataFrame) -> tuple:
     class_report = get_classification_report(df)
     cohens_kappa = calculate_cohens_kappa(df)
     return accuracy, class_report, cohens_kappa, confusion
+
+
+def compare_to_tags(probs: np.ndarray, paths: List[str], dataset: pd.DataFrame,
+                    id_col: str, tag_col: str, threshold: float = 0.5) -> pd.DataFrame:
+    """
+    Compares probabilities with a threshold to assign class labels and merges the results
+    with a dataset based on image paths to include category tags.
+
+    Parameters:
+    - probs (np.ndarray): An array of probabilities associated with each image.
+    - paths (List[str]): A list of paths for each image.
+    - dataset (pd.DataFrame): The dataset containing tags for each image.
+    - id_col (str): The column name in 'dataset' that matches the 'paths' list.
+    - tag_col (str): The column name in 'dataset' containing the category tags.
+    - threshold (float, optional): The threshold for classifying probabilities into classes.
+      Defaults to 0.5.
+
+    Returns:
+    - pd.DataFrame: A DataFrame containing the original paths, probabilities, class labels (1 for probabilities
+      above the threshold and -1 for those below), and category tags from the 'dataset'.
+    """
+    # Extract relevant columns from the dataset
+    df_tags = dataset[[id_col, tag_col]]
+    # Create a DataFrame from the paths and probabilities
+    df = pd.DataFrame({"probability": probs[:, 0], "path": paths})
+    # Assign class labels based on the threshold
+    df['class_label'] = np.where(df['probability'] > threshold, 1, -1)
+    # Merge the DataFrame with the tags DataFrame based on the path/id
+    full_df = pd.merge(df, df_tags, left_on="path", right_on=id_col)
+    # Rename columns for clarity
+    full_df = full_df.rename(columns={"class_label": "Result", tag_col: "Category"})
+    return full_df
+
